@@ -1,0 +1,24 @@
+# Environment / secrets
+.env
+ai-analytics/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Dataset — downloaded via scripts/download_dataset.sh, not committed
+# (Kaggle CC BY-NC-SA 4.0 license: each user pulls it under their own
+# Kaggle account rather than this repo redistributing a copy)
+ecommerce olist dataset kaggle/
+data/olist/*
+!data/olist/README.md
+
+.DS_Store
