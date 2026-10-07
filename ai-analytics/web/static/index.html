@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>E-commerce Sales Analytics — Metabase + Claude</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=__ASSET_VERSION__">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🛍️</span>
+      <div>
+        <h1>E-commerce Sales Analytics</h1>
+        <p>Ask Claude about your sales data — it answers from Metabase, and can build dashboards for you</p>
+      </div>
+    </div>
+    <div class="status-strip" id="status-strip">
+      <span class="badge badge-pending" id="badge-metabase">● Connecting to Metabase…</span>
+      <span class="badge badge-pending" id="badge-llm">● Checking model…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="chat-panel">
+      <div class="messages" id="messages">
+        <div class="message assistant">
+          <div class="bubble">
+            <p>Hi — I'm connected to your Metabase instance and the Olist e-commerce data in ClickHouse.</p>
+            <p>Ask me anything about sales, and if you want something kept around, say
+              <em>"save that to the dashboard"</em> and I'll build it in Metabase.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="suggestions" id="suggestions">
+        <button class="suggestion">Which product category generates the most revenue?</button>
+        <button class="suggestion">How have orders trended month over month?</button>
+        <button class="suggestion">What's the average delivery time by state?</button>
+        <button class="suggestion">Show review scores by category and save it to the dashboard</button>
+      </div>
+
+      <form class="composer" id="composer">
+        <input
+          id="input"
+          type="text"
+          autocomplete="off"
+          placeholder="Ask about your sales data…"
+          aria-label="Ask about your sales data"
+        >
+        <button type="submit" id="send" aria-label="Send">↑</button>
+      </form>
+    </section>
+
+    <section class="dashboard-panel">
+      <div class="dashboard-toolbar">
+        <label for="dashboard-select" class="sr-only">Dashboard</label>
+        <select id="dashboard-select" aria-label="Select dashboard"></select>
+        <div class="toolbar-actions">
+          <button id="refresh" title="Refresh dashboard">⟳</button>
+          <a id="open-metabase" href="#" target="_blank" rel="noopener">Open in Metabase ↗</a>
+        </div>
+      </div>
+      <div class="dashboard-frame" id="dashboard-frame">
+        <div class="frame-placeholder" id="frame-placeholder">
+          <div class="spinner"></div>
+          <p>Waiting for Metabase…</p>
+          <small>First boot provisions the ClickHouse connection and a starter dashboard. This takes a minute.</small>
+        </div>
+        <iframe id="dashboard-iframe" title="Metabase dashboard" hidden></iframe>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=__ASSET_VERSION__"></script>
+</body>
+</html>

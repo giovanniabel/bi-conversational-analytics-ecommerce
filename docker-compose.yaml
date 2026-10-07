@@ -31,6 +31,59 @@ services:
       retries: 60
       start_period: 30s
 
+  # Metabase's own application database (saved questions, dashboards, users).
+  # Metabase ships with H2 but explicitly warns against it outside trials —
+  # Postgres keeps the BI layer's own state durable and backup-able.
+  metabase-db:
+    image: postgres:15
+    container_name: metabase-postgres
+    volumes:
+      - metabase_db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: metabase
+      POSTGRES_USER: metabase
+      POSTGRES_PASSWORD: metabase123
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U metabase -d metabase" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  metabase:
+    # Pinned rather than :latest so a fresh clone gets the version this was
+    # built against. v54+ bundles the ClickHouse driver, so no plugin jar.
+    image: metabase/metabase:v0.63.19
+    container_name: metabase
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: 5432
+      MB_DB_USER: metabase
+      MB_DB_PASS: metabase123
+      MB_DB_HOST: metabase-db
+      # MB_EMBEDDING_SECRET_KEY is deliberately NOT set here. Metabase
+      # generates its own embedding secret, and a setting fixed by an env var
+      # becomes read-only over the API — leaving it unset lets the web app
+      # read the live secret back and sign embed JWTs with it, so signed
+      # embedding works with zero configuration.
+      MB_ANON_TRACKING_ENABLED: "false"
+      JAVA_TIMEZONE: UTC
+    depends_on:
+      metabase-db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "-I", "http://localhost:3000/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    restart: unless-stopped
+
   ai-analytics:
     build:
       context: ./ai-analytics
@@ -50,8 +103,49 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8501/_stcore/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Second UI: Claude chat alongside embedded Metabase dashboards. Same image
+  # as ai-analytics (shares src/), different command.
+  metabase-webapp:
+    build:
+      context: ./ai-analytics
+      dockerfile: Dockerfile
+    container_name: metabase-webapp
+    command: [ "uvicorn", "web.main:app", "--host", "0.0.0.0", "--port", "8000" ]
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./ai-analytics/.env
+    environment:
+      # Only genuinely container-specific values belong here — anything set
+      # in `environment:` silently wins over `env_file:`, so putting a
+      # user-configurable key here would make ai-analytics/.env a no-op for it.
+      CLICKHOUSE_HOST: clickhouse
+      # Server-to-server calls go over the Docker network. The browser-facing
+      # URL (METABASE_PUBLIC_URL) is left to ai-analytics/.env so it stays
+      # overridable for non-localhost deployments.
+      METABASE_INTERNAL_URL: http://metabase:3000
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      metabase:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8000/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     restart: unless-stopped
 
 volumes:
   ch_data:
   ch_logs:
+  metabase_db_data:

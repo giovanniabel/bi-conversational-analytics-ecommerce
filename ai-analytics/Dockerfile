@@ -20,11 +20,12 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
 RUN uv sync --frozen --no-dev
 
-# Expose Streamlit port
-EXPOSE 8501
+# 8501 = Streamlit UI, 8000 = FastAPI/Metabase UI. One image serves both;
+# docker-compose picks which by overriding `command`.
+EXPOSE 8501 8000
 
-# Health check
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
-
-# Run Streamlit
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+# Streamlit is the default. CMD (not ENTRYPOINT) so `command:` in compose can
+# swap in uvicorn for the Metabase web app without an entrypoint override.
+# Per-service healthchecks live in docker-compose.yaml, since the right probe
+# depends on which command is running.
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]

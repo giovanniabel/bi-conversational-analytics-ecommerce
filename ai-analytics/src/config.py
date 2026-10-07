@@ -29,6 +29,48 @@ class LLMConfig:
 
 
 @dataclass(frozen=True)
+class MetabaseConfig:
+    """
+    Metabase connection settings.
+
+    `internal_url` is how the backend reaches Metabase (Docker service name);
+    `public_url` is how the *browser* reaches it, which is what iframe `src`
+    attributes must use. They differ inside Docker and must both be right.
+    """
+    internal_url: str = field(
+        default_factory=lambda: os.getenv("METABASE_INTERNAL_URL", "http://localhost:3000")
+    )
+    public_url: str = field(
+        default_factory=lambda: os.getenv("METABASE_PUBLIC_URL", "http://localhost:3000")
+    )
+    admin_email: str = field(
+        default_factory=lambda: os.getenv("METABASE_ADMIN_EMAIL", "admin@example.com")
+    )
+    admin_password: str = field(
+        default_factory=lambda: os.getenv("METABASE_ADMIN_PASSWORD", "metabase123!")
+    )
+    site_name: str = field(
+        default_factory=lambda: os.getenv("METABASE_SITE_NAME", "E-commerce Analytics")
+    )
+    embedding_secret: str = field(
+        default_factory=lambda: os.getenv("METABASE_EMBEDDING_SECRET", "")
+    )
+    database_name: str = field(
+        default_factory=lambda: os.getenv("METABASE_DATABASE_NAME", "Olist ClickHouse")
+    )
+    # The ClickHouse hostname from *Metabase's* vantage point, which is not
+    # necessarily this process's. Metabase runs on the Compose network where
+    # ClickHouse answers to `clickhouse`, even when provisioning is driven
+    # from the host (where CLICKHOUSE_HOST is localhost).
+    clickhouse_host: str = field(
+        default_factory=lambda: os.getenv("METABASE_CLICKHOUSE_HOST", "clickhouse")
+    )
+    dashboard_name: str = field(
+        default_factory=lambda: os.getenv("METABASE_DASHBOARD_NAME", "Sales Overview")
+    )
+
+
+@dataclass(frozen=True)
 class AppConfig:
     """Application-level settings."""
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
@@ -46,4 +88,5 @@ class AppConfig:
 # Singleton instances
 clickhouse_config = ClickHouseConfig()
 llm_config = LLMConfig()
+metabase_config = MetabaseConfig()
 app_config = AppConfig()
